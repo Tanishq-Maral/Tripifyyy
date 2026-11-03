@@ -1,0 +1,1213 @@
+pandas==3.0.1
+numpy==2.3.5
+scikit-learn==1.9.1
+matplotlib==3.11.2
+openpyxl==3.1.5
+statsmodels==0.15.0
+xgboost==3.4.1
+gymnasium==1.4.0
+requests==2.34.2
+ipykernel==7.4.0
+jupyterlab>=4,<5
+
+-------------------------------------------------------------------------------- 01
+Assignment_01:
+pip install pandas scikit-learn
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+iris = pd.read_csv('datasets/assignment_01/part_b/Iris.csv')
+display(iris.head())
+display(iris.info())
+
+x = iris.drop(columns='Species')
+y = iris['Species']
+
+x_train, x_test, y_train, y_test = train_test_split(
+    x, y,
+    test_size = 0.2,
+    random_state = 42,
+    stratify=y
+)
+
+model = LinearDiscriminantAnalysis()
+model.fit(x_train, y_train)
+
+prediction = model.predict(x_test)
+
+print('Accuracy :', accuracy_score(y_test, prediction))
+print('Confusion Matrix :', '\n', confusion_matrix(y_test, prediction))
+print('Classification Report :', '\n', classification_report(y_test, prediction))
+
+newFlower = pd.DataFrame([[5.1, 4.2, 3.4, 1.2]], columns=x.columns)
+
+print(model.predict(newFlower)[0])
+
+sep_len = float(input("Enter Sepal Length : "))
+sep_wid = float(input("Enter Sepal Width : "))
+pet_len = float(input("Enter Petal Length : "))
+pet_wid = float(input("Enter Petal Width : "))
+
+-------
+# Load the wine file linked in the assignment.
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+wine = pd.read_csv('datasets/assignment_01/part_a/wine_link.csv')
+display(wine.head())
+
+# Standardize measurements and keep components explaining 90% of the variance.
+X = wine.drop(columns='Customer_Segment')
+X_scaled = StandardScaler().fit_transform(X)
+pca = PCA(n_components=0.90)
+components = pca.fit_transform(X_scaled)
+print('Original features:', X.shape[1])
+print('Principal components:', pca.n_components_)
+print('Variance retained:', pca.explained_variance_ratio_.sum())
+
+# Plot the first two components, colored by the actual cultivar label.
+for label in sorted(wine['Customer_Segment'].unique()):
+    rows = wine['Customer_Segment'] == label
+    plt.scatter(components[rows, 0], components[rows, 1], label=f'Cultivar {label}')
+plt.xlabel('Principal component 1')
+plt.ylabel('Principal component 2')
+plt.title('PCA: linked wine dataset')
+plt.legend()
+plt.show()
+
+# Combine the downloaded red and white wine files.
+red = pd.read_csv('datasets/assignment_01/part_a/winequality-red.csv', sep=';')
+white = pd.read_csv('datasets/assignment_01/part_a/winequality-white.csv', sep=';')
+red['type'] = 'red'
+white['type'] = 'white'
+wines = pd.concat([red, white], ignore_index=True)
+X = wines.drop(columns=['type', 'quality'])
+X_scaled = StandardScaler().fit_transform(X)
+pca = PCA(n_components=0.90)
+components = pca.fit_transform(X_scaled)
+print('Features before PCA:', X.shape[1])
+print('Components after PCA:', pca.n_components_)
+print('Variance retained:', pca.explained_variance_ratio_.sum())
+
+# Compare red and white wine in the first two principal components.
+for label, color in [('red', 'firebrick'), ('white', 'goldenrod')]:
+    rows = wines['type'] == label
+    plt.scatter(components[rows, 0], components[rows, 1], s=10, alpha=0.4,
+                label=label, color=color)
+plt.xlabel('Principal component 1')
+plt.ylabel('Principal component 2')
+plt.title('PCA: red and white wine')
+plt.legend()
+plt.show()
+
+-------------------------------------------------------------------------------------------------- 02
+pip install pandas matplotlib scikit-learn
+
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+csv_data = pd.read_csv('datasets/assignment_02/sales_part1.csv')
+excel_data = pd.read_excel('datasets/assignment_02/sales_part2.xlsx')
+json_data = pd.read_json('datasets/assignment_02/sales_part3.json')
+
+for data in [csv_data, excel_data, json_data]:
+    print('Shape :', data.shape)
+    display(data.head())
+    display(data.info())
+
+sales = pd.concat([csv_data, excel_data, json_data], ignore_index=True)
+
+print('Shape :', sales.shape)
+display(sales.info())
+
+sales.columns = sales.columns.str.strip()
+for column in ['Region', 'Category', 'Sub-Category']:
+    sales[column] = sales[column].str.strip().str.title()
+
+sales['Order Date'] = pd.to_datetime(sales['Order Date'], errors='coerce')
+sales['Sales'] = pd.to_numeric(sales['Sales'], errors='coerce')
+sales['Quantity'] = pd.to_numeric(sales['Quantity'], errors='coerce')
+
+sales = sales.drop_duplicates(subset='Row ID')
+sales = sales.dropna(subset=['Order ID', 'Order Date', 'Sales', 'Quantity'])
+
+sales['Category'] = sales['Category'].fillna('Unknown')
+sales['Region'] = sales['Region'].fillna('Unknown')
+
+print('Cleaned shape:', sales.shape)
+
+sales['Unit Price'] = sales['Sales'].div(sales['Quantity'].replace(0, float('nan')))
+sales['Order Month'] = sales['Order Date'].dt.to_period('M').astype(str)
+
+display(sales.head(2))
+display(sales[['Sales', 'Quantity', 'Unit Price']].describe())
+
+print('Total Sales :', sales['Sales'].sum())
+
+order_tot = sales.groupby('Order ID')['Sales'].sum()
+print('Average Per Order Sales :', order_tot.mean())
+
+category_tot = sales.groupby('Category')['Sales'].sum()
+print('Category Sales :', '\n', category_tot)
+
+print('Count :', '\n', sales['Category'].value_counts())
+
+category_tot.plot(
+    kind='bar',
+    ylabel='Sales',
+    title='Category Sales',
+    rot=0
+)
+plt.show()
+
+sales.groupby('Order Month')['Sales'].sum().plot(
+    figsize=(10, 4),
+    xlabel='Months',
+    ylabel='Sales',
+    title="Monthly Sales"
+)
+plt.show()
+
+Path('outputs').mkdir(exist_ok=True)
+sales.to_csv('outputs/ass_02.csv', index=False)
+
+-------------------------------------------------------------------------------------------------------- 03
+Uber Fare Regression
+Preprocess fares, identify outliers, inspect correlations and compare Linear, Ridge and Lasso regression. 
+IQR cutoffs are learned from training data; test fares remain untouched after basic validity checks.
+
+# Load and inspect the local Uber fares dataset.
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import mean_squared_error, r2_score
+
+rides = pd.read_csv('datasets/assignment_03/part_a/uber.csv')
+display(rides.head())
+display(rides.isna().sum())
+
+# Remove missing, duplicate and invalid NYC trip records.
+columns = ['fare_amount', 'pickup_datetime', 'pickup_longitude', 'pickup_latitude',
+           'dropoff_longitude', 'dropoff_latitude', 'passenger_count']
+rides = rides[columns].drop_duplicates().copy()
+rides['pickup_datetime'] = pd.to_datetime(rides['pickup_datetime'], errors='coerce', utc=True)
+rides = rides.dropna()
+rides = rides[(rides['fare_amount'] > 0) & rides['passenger_count'].between(1, 6)]
+for column in ['pickup_longitude', 'dropoff_longitude']:
+    rides = rides[rides[column].between(-75, -72)]
+for column in ['pickup_latitude', 'dropoff_latitude']:
+    rides = rides[rides[column].between(40, 42)]
+print('Valid trips:', len(rides))
+
+# Calculate trip distance from pickup and drop-off coordinates.
+lat1, lon1, lat2, lon2 = np.radians(rides[
+    ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']].to_numpy()).T
+a = np.sin((lat2-lat1)/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin((lon2-lon1)/2)**2
+rides['distance_km'] = 6371 * 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
+rides = rides[rides['distance_km'] > 0].copy()
+rides['hour'] = rides['pickup_datetime'].dt.hour
+rides['year'] = rides['pickup_datetime'].dt.year
+features = ['distance_km', 'passenger_count', 'hour', 'year']
+
+# Visualize fare outliers and inspect numeric correlations.
+rides.boxplot(column='fare_amount')
+plt.title('Fare outliers before IQR filtering')
+plt.ylabel('Fare (USD)')
+plt.show()
+display(rides[features + ['fare_amount']].corr())
+
+# Split the data and remove IQR outliers from the training portion only.
+train, test = train_test_split(rides, test_size=0.2, random_state=42)
+mask = pd.Series(True, index=train.index)
+for column in ['fare_amount', 'distance_km']:
+    q1, q3 = train[column].quantile([0.25, 0.75])
+    iqr = q3 - q1
+    outlier = ~train[column].between(q1 - 1.5*iqr, q3 + 1.5*iqr)
+    print(column, 'training outliers:', outlier.sum())
+    mask = mask & ~outlier
+train = train[mask]
+X_train, y_train = train[features], train['fare_amount']
+X_test, y_test = test[features], test['fare_amount']
+
+# Train the three regression models and compare held-out R2 and RMSE.
+models = {'Linear': LinearRegression(), 'Ridge': Ridge(alpha=1), 'Lasso': Lasso(alpha=0.01)}
+results = []
+for name, estimator in models.items():
+    model = make_pipeline(StandardScaler(), estimator)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    results.append({'Model': name, 'R2': r2_score(y_test, predictions),
+                    'RMSE': np.sqrt(mean_squared_error(y_test, predictions))})
+    models[name] = model
+display(pd.DataFrame(results))
+print('Example trip inputs:')
+display(X_test.head(1))
+print('Predicted fare (USD):', round(models['Linear'].predict(X_test.head(1))[0], 2))
+
+-------
+# Load both local datasets and mark impossible Pima measurements as missing.
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, precision_score, recall_score
+
+cdc = pd.read_csv('datasets/assignment_03/part_b/cdc_diabetes.csv')
+pima = pd.read_csv('datasets/assignment_03/part_b/Pima_Diabetes.csv')
+pima[['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI']] = pima[
+    ['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI']].replace(0, np.nan)
+datasets = {'UCI CDC': cdc, 'Pima': pima}
+for name, data in datasets.items():
+    print(name, data.shape)
+    display(data.head())
+
+# Calculate univariate statistics and frequency tables for each dataset.
+for name, data in datasets.items():
+    print(name)
+    statistics = data.agg(['mean', 'median', 'var', 'std', 'skew', 'kurt']).T
+    statistics['mode'] = data.mode().iloc[0]
+    display(statistics)
+    target = 'Diabetes_binary' if name == 'UCI CDC' else 'Outcome'
+    display(data[target].value_counts().rename('Diagnosis frequency'))
+    display(data['BMI'].value_counts().sort_index().rename('BMI frequency'))
+
+# Compare simple and multiple linear regression for the same continuous target: BMI.
+regression_results = []
+for name, data in datasets.items():
+    data = data.dropna(subset=['BMI'])
+    features = ['HighBP', 'Age', 'PhysHlth'] if name == 'UCI CDC' else ['BloodPressure', 'Age', 'Glucose']
+    train, test = train_test_split(data, test_size=0.2, random_state=42)
+    for label, columns in [('Simple linear', features[:1]), ('Multiple linear', features)]:
+        model = make_pipeline(SimpleImputer(strategy='median'), LinearRegression())
+        model.fit(train[columns], train['BMI'])
+        predictions = model.predict(test[columns])
+        regression_results.append({'Dataset': name, 'Model': label,
+            'R2': r2_score(test['BMI'], predictions),
+            'RMSE': np.sqrt(mean_squared_error(test['BMI'], predictions))})
+display(pd.DataFrame(regression_results))
+
+# Fit bivariate logistic regression: diabetes status depends on BMI alone.
+classification_results = []
+for name, data in datasets.items():
+    target = 'Diabetes_binary' if name == 'UCI CDC' else 'Outcome'
+    X_train, X_test, y_train, y_test = train_test_split(
+        data[['BMI']], data[target], test_size=0.2, random_state=42, stratify=data[target])
+    model = make_pipeline(SimpleImputer(strategy='median'), StandardScaler(), LogisticRegression())
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    classification_results.append({'Dataset': name, 'Accuracy': accuracy_score(y_test, predictions),
+        'Precision': precision_score(y_test, predictions, zero_division=0),
+        'Recall': recall_score(y_test, predictions, zero_division=0)})
+display(pd.DataFrame(classification_results))
+
+--------------------------------------------------------------------------------------------------------- 04
+Weather Data from OpenWeatherMap
+Use the saved Pune forecast in datasets/assignment_04/weather_live.json. If OPENWEATHERMAP_API_KEY is available in your 
+environment or a local .env file, download a fresh forecast first. The key is never saved in the notebook. Forecast data 
+supports daily summaries; a short forecast cannot establish seasonal patterns. 
+API reference: https://openweathermap.org/forecast5.
+
+# Load libraries and read the API key without displaying or saving it.
+import os
+import json
+from pathlib import Path
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+api_key = os.getenv('OPENWEATHERMAP_API_KEY')
+if not api_key and Path('.env').is_file():
+    for line in Path('.env').read_text(encoding='utf-8-sig').splitlines():
+        if line.strip().startswith('OPENWEATHERMAP_API_KEY='):
+            api_key = line.split('=', 1)[1].strip().strip('\"').strip("'")
+
+CITY = 'Pune'
+FETCH_LIVE = bool(api_key)
+LATITUDE, LONGITUDE = 18.5204, 73.8567
+Path('outputs').mkdir(exist_ok=True)
+
+# Optionally retrieve a forecast and save it locally before reading it.
+if FETCH_LIVE:
+    if not api_key:
+        raise ValueError('Set OPENWEATHERMAP_API_KEY before using live mode.')
+    try:
+        response = requests.get('https://api.openweathermap.org/data/2.5/forecast',
+            params={'lat': LATITUDE, 'lon': LONGITUDE, 'appid': api_key, 'units': 'metric'}, timeout=30)
+    except requests.RequestException:
+        raise RuntimeError('Weather request failed. Check your internet connection and try again.') from None
+    if response.status_code != 200:
+        raise RuntimeError(f'Weather API failed with HTTP {response.status_code}. Check your key and access.')
+    forecast = response.json()
+    forecast['units'] = 'metric'
+    Path('datasets/assignment_04/weather_live.json').write_text(json.dumps([forecast], indent=2), encoding='utf-8')
+    print('Saved a live forecast to datasets/assignment_04/weather_live.json')
+else:
+    print('Using the saved Pune forecast from datasets/assignment_04/weather_live.json.')
+
+# Read the saved JSON and extract temperature, humidity, wind and precipitation.
+file = 'datasets/assignment_04/weather_live.json'
+forecasts = json.loads(Path(file).read_text(encoding='utf-8'))
+rows = []
+for forecast in forecasts:
+    city = forecast['city']
+    for item in forecast['list']:
+        temperature = item['main'].get('temp')
+        if temperature is not None and forecast['units'] == 'standard':
+            temperature -= 273.15
+        rows.append({'city': city['name'], 'time': item['dt_txt'],
+            'temperature': temperature, 'humidity': item['main'].get('humidity'),
+            'wind_speed': item.get('wind', {}).get('speed'),
+            'precipitation': item.get('rain', {}).get('3h', 0) + item.get('snow', {}).get('3h', 0),
+            'latitude': city['coord']['lat'], 'longitude': city['coord']['lon']})
+weather = pd.DataFrame(rows)
+display(weather.head())
+
+# Clean times and numeric values, then select the requested city.
+weather['time'] = pd.to_datetime(weather['time'], utc=True, errors='coerce')
+numeric = ['temperature', 'humidity', 'wind_speed', 'precipitation']
+weather[numeric] = weather[numeric].apply(pd.to_numeric, errors='coerce')
+weather = weather.dropna(subset=['time', 'temperature']).drop_duplicates(['city', 'time'])
+weather = weather.sort_values(['city', 'time'])
+weather[['humidity', 'wind_speed']] = weather.groupby('city')[['humidity', 'wind_speed']].ffill()
+selected_city = forecasts[0]['city']['name']
+city_weather = weather[weather['city'] == selected_city].set_index('time')
+display(city_weather[numeric].describe())
+
+# Summarize average/minimum/maximum temperature and total precipitation by UTC day.
+daily = city_weather.resample('D').agg(
+    temperature_mean=('temperature', 'mean'), temperature_min=('temperature', 'min'),
+    temperature_max=('temperature', 'max'), humidity_mean=('humidity', 'mean'),
+    wind_mean=('wind_speed', 'mean'), precipitation_total=('precipitation', 'sum'))
+display(daily)
+daily.to_csv('outputs/04_daily_weather.csv')
+weather.to_csv('outputs/04_weather_cleaned.csv', index=False)
+
+# Plot temperature, precipitation and wind changes over the forecast period.
+city_weather['temperature'].plot(figsize=(10, 3), title=f'{selected_city}: forecast temperature', ylabel='Celsius')
+plt.tight_layout()
+plt.show()
+daily['precipitation_total'].rename(index=lambda date: date.strftime('%Y-%m-%d')).plot(
+    kind='bar', rot=45, title='Daily forecast precipitation', ylabel='mm')
+plt.xlabel('UTC date')
+plt.tight_layout()
+plt.show()
+city_weather['wind_speed'].plot(title='Forecast wind speed', ylabel='m/s')
+plt.tight_layout()
+plt.show()
+
+# Compare forecast temperatures geographically using available city coordinates.
+locations = weather.groupby('city').agg(latitude=('latitude', 'first'),
+    longitude=('longitude', 'first'), temperature=('temperature', 'mean'))
+plt.figure(figsize=(8, 5))
+plt.scatter(locations['longitude'], locations['latitude'], c=locations['temperature'], cmap='coolwarm', s=150)
+for name, row in locations.iterrows():
+    plt.annotate(name, (row['longitude'], row['latitude']), xytext=(5, 5), textcoords='offset points')
+plt.colorbar(label='Mean forecast temperature (C)')
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.margins(x=0.20, y=0.15)
+plt.title('Geographical comparison of forecast temperatures')
+plt.tight_layout()
+plt.show()
+
+# Show relationships between weather attributes with a correlation heatmap.
+correlation = city_weather[numeric].corr()
+display(correlation)
+plt.imshow(correlation, cmap='coolwarm', vmin=-1, vmax=1)
+plt.xticks(range(4), numeric, rotation=45, ha='right')
+plt.yticks(range(4), numeric)
+plt.colorbar(label='Correlation')
+plt.title('Weather attribute correlations')
+plt.tight_layout()
+plt.show()
+
+--------------------------------------------------------------------------------------------------------- 05
+SVM for Handwritten Digits
+Classify handwritten digits 0-9 using the downloaded 8x8-pixel digits dataset. Each CSV row contains 64 pixel values and 
+its digit label.
+
+# Read the local digit images and split the labeled data.
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+digits = pd.read_csv('datasets/assignment_05/part_a/Digits.csv')
+X = digits.drop(columns='digit')
+y = digits['digit']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Train an SVM classifier and evaluate all ten digit classes.
+model = make_pipeline(StandardScaler(), SVC())
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+print('Accuracy:', accuracy_score(y_test, predictions))
+print('Confusion matrix:\n', confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+
+# Display a test image with its predicted and actual digit.
+plt.imshow(X_test.iloc[0].to_numpy().reshape(8, 8), cmap='gray')
+plt.title(f'Predicted: {predictions[0]}, Actual: {y_test.iloc[0]}')
+plt.axis('off')
+plt.show()
+
+-------05 B
+# Load the local ad dataset and create stratified train/test sets.
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
+
+ads = pd.read_csv('datasets/assignment_05/part_b/Social_Network_Ads.csv')
+X = ads[['Age', 'EstimatedSalary']]
+y = ads['Purchased']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+display(ads.head())
+
+# Scale the features using training data and fit KNN with five neighbors.
+model = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5))
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+
+# Calculate all the required classification measures.
+accuracy = accuracy_score(y_test, predictions)
+print('Confusion matrix:\n', confusion_matrix(y_test, predictions))
+print('Accuracy:', accuracy)
+print('Error rate:', 1 - accuracy)
+print('Precision:', precision_score(y_test, predictions, zero_division=0))
+print('Recall:', recall_score(y_test, predictions, zero_division=0))
+
+--------------------------------------------------------------------------------------------------------- 06
+Telecom Customer Churn Data Preparation
+Clean customer records, engineer features, handle outliers, scale numeric features and create training/testing CSV files. 
+Statistics for imputation, clipping and scaling are learned from training records only.
+
+# Load the local telecom data and inspect its structure and missing values.
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+customers = pd.read_csv('datasets/assignment_06/Telecom_Customer_Churn.csv')
+display(customers.head())
+customers.info()
+display(customers.isna().sum())
+print('Duplicate customer IDs:', customers['customerID'].duplicated().sum())
+
+# Remove duplicates, standardize text and correct numeric data types.
+customers = customers.drop_duplicates(subset='customerID').copy()
+text_columns = customers.select_dtypes(include=['object', 'string']).columns
+for column in text_columns:
+    customers[column] = customers[column].astype('string').str.strip().replace('', pd.NA)
+customers['gender'] = customers['gender'].str.lower()
+customers['Churn'] = customers['Churn'].str.lower().map({'yes': 1, 'no': 0})
+customers = customers.dropna(subset=['Churn'])
+customers['Churn'] = customers['Churn'].astype(int)
+numeric = ['tenure', 'MonthlyCharges', 'TotalCharges']
+customers[numeric] = customers[numeric].apply(pd.to_numeric, errors='coerce').astype(float)
+display(customers[numeric].isna().sum())
+
+# Split before learning missing-value replacements and outlier cutoffs.
+train, test = train_test_split(customers, test_size=0.2, random_state=42, stratify=customers['Churn'])
+train, test = train.copy(), test.copy()
+medians = train[numeric].median()
+categorical = train.select_dtypes(include=['object', 'string']).columns
+for part in [train, test]:
+    part[numeric] = part[numeric].fillna(medians)
+    part[categorical] = part[categorical].fillna('Unknown')
+for column in ['MonthlyCharges', 'TotalCharges']:
+    q1, q3 = train[column].quantile([0.25, 0.75])
+    iqr = q3 - q1
+    lower, upper = max(0, q1 - 1.5*iqr), q3 + 1.5*iqr
+    print(column, 'training outliers:', (~train[column].between(lower, upper)).sum())
+    for part in [train, test]:
+        part[column] = part[column].clip(lower, upper)
+
+# Add customer-age and spending features for future churn modeling.
+for part in [train, test]:
+    part['NewCustomer'] = (part['tenure'] < 12).astype(int)
+    part['AverageMonthlySpend'] = part['TotalCharges'].div(part['tenure'].replace(0, np.nan)).fillna(0)
+cleaned = pd.concat([train, test]).sort_index()
+display(cleaned.head())
+display(cleaned.isna().sum())
+
+# Encode categories and scale continuous features with training-only statistics.
+X_train = pd.get_dummies(train.drop(columns=['customerID', 'Churn']), dtype=int)
+X_test = pd.get_dummies(test.drop(columns=['customerID', 'Churn']), dtype=int)
+X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
+scaled_columns = numeric + ['AverageMonthlySpend']
+scaler = StandardScaler()
+X_train[scaled_columns] = scaler.fit_transform(X_train[scaled_columns])
+X_test[scaled_columns] = scaler.transform(X_test[scaled_columns])
+print('Training shape:', X_train.shape, 'Testing shape:', X_test.shape)
+
+# Export the cleaned records and prepared training/testing data with labels.
+Path('outputs').mkdir(exist_ok=True)
+cleaned.to_csv('outputs/06_cleaned_telecom.csv', index=False)
+X_train.assign(Churn=train['Churn']).to_csv('outputs/06_train.csv', index=False)
+X_test.assign(Churn=test['Churn']).to_csv('outputs/06_test.csv', index=False)
+
+--------------------------------------------------------------------------------------------------------- 07
+K-Means Clustering on Iris
+Use the elbow method to choose the number of clusters. Species labels are excluded from clustering. In the included 
+elbow plot, the improvement becomes smaller around k=3, so this example selects three clusters. The elbow method is 
+a visual choice and need not give a unique answer.
+
+# Read the Iris measurements and standardize them for distance-based clustering.
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+iris = pd.read_csv('datasets/assignment_07/part_a/Iris.csv')
+X = iris.drop(columns='Species')
+X_scaled = StandardScaler().fit_transform(X)
+
+# Plot within-cluster squared distances for different cluster counts.
+inertias = []
+for k in range(1, 11):
+    model = KMeans(n_clusters=k, random_state=42, n_init=10)
+    model.fit(X_scaled)
+    inertias.append(model.inertia_)
+plt.plot(range(1, 11), inertias, marker='o')
+plt.xlabel('Number of clusters')
+plt.ylabel('Within-cluster sum of squares')
+plt.title('Elbow method for Iris')
+plt.xticks(range(1, 11))
+plt.show()
+
+# Fit K-Means using the elbow choice and display the resulting clusters.
+chosen_k = 3
+model = KMeans(n_clusters=chosen_k, random_state=42, n_init=10)
+labels = model.fit_predict(X_scaled)
+print('Chosen clusters:', chosen_k)
+print('Cluster sizes:', pd.Series(labels).value_counts().sort_index().to_dict())
+plt.scatter(iris['PetalLengthCm'], iris['PetalWidthCm'], c=labels, cmap='viridis')
+plt.xlabel('Petal length (cm)')
+plt.ylabel('Petal width (cm)')
+plt.title('Iris K-Means clusters')
+plt.show()
+
+------- 07 B
+# Load numeric credit-card features, handle missing values and scale a fixed sample.
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import pairwise_distances, silhouette_score
+
+cards = pd.read_csv('datasets/assignment_07/part_b/credit_card.csv')
+sample = cards.drop(columns='CUST_ID').sample(n=800, random_state=42)
+sample = sample.fillna(sample.median())
+X = StandardScaler().fit_transform(sample)
+distances = pairwise_distances(X)
+print('Full dataset:', cards.shape, 'Sample:', sample.shape)
+
+# Alternate nearest-medoid assignment and minimum-total-distance medoid updates.
+def k_medoids(distances, k):
+    rng = np.random.default_rng(42)
+    medoids = rng.choice(len(distances), k, replace=False)
+    for iteration in range(50):
+        labels = distances[:, medoids].argmin(axis=1)
+        updated = medoids.copy()
+        for cluster in range(k):
+            members = np.where(labels == cluster)[0]
+            if len(members) > 0:
+                costs = distances[np.ix_(members, members)].sum(axis=1)
+                updated[cluster] = members[costs.argmin()]
+        if np.array_equal(medoids, updated):
+            break
+        medoids = updated
+    labels = distances[:, medoids].argmin(axis=1)
+    return labels, medoids
+
+# Select the cluster count with the largest silhouette score.
+scores = []
+for k in range(2, 7):
+    labels, medoids = k_medoids(distances, k)
+    scores.append(silhouette_score(distances, labels, metric='precomputed'))
+best_k = range(2, 7)[int(np.argmax(scores))]
+display(pd.DataFrame({'k': range(2, 7), 'Silhouette': scores}))
+plt.plot(range(2, 7), scores, marker='o')
+plt.xlabel('Number of clusters')
+plt.ylabel('Silhouette score')
+plt.title('Silhouette method for K-Medoids')
+plt.show()
+print('Chosen k:', best_k)
+
+# Inspect the final cluster sizes and the actual records chosen as medoids.
+labels, medoids = k_medoids(distances, best_k)
+print('Cluster sizes:', pd.Series(labels).value_counts().sort_index().to_dict())
+display(sample.iloc[medoids])
+
+--------------------------------------------------------------------------------------------------------- 08
+Real Estate Data Wrangling
+Use the downloaded UCI Real Estate Valuation data, converted locally from XLSX to RealEstate_Prices.csv. The price is per 
+unit area, not the total property sale price. Location and nearby-store data are already in the same file; no additional 
+dataset was supplied, so a separate merge is unnecessary.
+
+# Read the data and clean column names by removing spaces and punctuation.
+import pandas as pd
+from pathlib import Path
+
+homes = pd.read_csv('datasets/assignment_08/RealEstate_Prices.csv')
+homes.columns = homes.columns.str.strip().str.lower().str.replace(r'[^a-z0-9]+', '_', regex=True)
+homes = homes.rename(columns={'no': 'id', 'x1_transaction_date': 'transaction_date',
+    'x2_house_age': 'house_age', 'x3_distance_to_the_nearest_mrt_station': 'distance_to_mrt',
+    'x4_number_of_convenience_stores': 'stores', 'x5_latitude': 'latitude',
+    'x6_longitude': 'longitude', 'y_house_price_of_unit_area': 'price_per_unit'})
+display(homes.head())
+display(homes.isna().sum())
+
+# Remove duplicates and missing prices, then impute missing numeric predictors.
+homes = homes.drop_duplicates().dropna(subset=['price_per_unit'])
+features = homes.columns.difference(['id', 'price_per_unit'])
+homes[features] = homes[features].fillna(homes[features].median())
+print('Cleaned records:', len(homes))
+
+# Filter properties with at least five nearby convenience stores.
+selected = homes[homes['stores'] >= 5].copy()
+display(selected[['house_age', 'stores', 'price_per_unit']].head())
+print('Properties meeting the filter:', len(selected))
+
+# Derive age categories and summarize prices by category and nearby-store count.
+selected['age_group'] = pd.cut(selected['house_age'], bins=[-1, 10, 30, 100],
+                               labels=['up to 10', 'over 10 to 30', 'over 30'])
+summary = selected.groupby(['age_group', 'stores'], observed=True)['price_per_unit'].agg(['count', 'mean', 'median'])
+display(summary)
+
+# Identify price outliers using the IQR rule and remove them for further analysis.
+q1, q3 = selected['price_per_unit'].quantile([0.25, 0.75])
+iqr = q3 - q1
+outliers = ~selected['price_per_unit'].between(q1 - 1.5*iqr, q3 + 1.5*iqr)
+print('Price outliers:', outliers.sum())
+selected = selected[~outliers].copy()
+
+# One-hot encode the categorical variable and export the prepared records.
+encoded = pd.get_dummies(selected, columns=['age_group'], dtype=int)
+Path('outputs').mkdir(exist_ok=True)
+encoded.to_csv('outputs/08_cleaned_real_estate.csv', index=False)
+display(encoded.head())
+
+--------------------------------------------------------------------------------------------------------- 09
+Random Forest for Car Evaluation
+Predict the dataset's car acceptability class from buying price, maintenance, doors, passenger capacity, luggage size and 
+safety. The target is acceptability (unacc/acc/good/vgood), which the assignment describes as car safety.
+
+# Load categorical car features and split the labeled records.
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+cars = pd.read_csv('datasets/assignment_09/part_a/Car_Evaluation.csv')
+X, y = cars.drop(columns='class'), cars['class']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+display(cars.head())
+
+# Encode feature categories and train a Random Forest classifier.
+model = make_pipeline(OneHotEncoder(handle_unknown='ignore'),
+                      RandomForestClassifier(n_estimators=100, random_state=42))
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+
+# Evaluate the model and show an example car prediction.
+print('Accuracy:', accuracy_score(y_test, predictions))
+print('Confusion matrix:\n', confusion_matrix(y_test, predictions))
+print(classification_report(y_test, predictions))
+display(X_test.head(1))
+print('Predicted class:', model.predict(X_test.head(1))[0])
+
+------ 09 B
+# Load Iris, encode the species labels and create one shared test split.
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from xgboost import XGBClassifier
+
+iris = pd.read_csv('datasets/assignment_09/part_b/Iris.csv')
+X = iris.drop(columns='Species')
+encoder = LabelEncoder()
+y = encoder.fit_transform(iris['Species'])
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Define the three boosting models and the two voting mechanisms.
+estimators = [
+    ('ada', AdaBoostClassifier(n_estimators=100, random_state=42)),
+    ('gbm', GradientBoostingClassifier(n_estimators=100, random_state=42)),
+    ('xgb', XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.1,
+                         eval_metric='mlogloss', random_state=42, n_jobs=1))]
+models = {'AdaBoost': estimators[0][1], 'GBM': estimators[1][1], 'XGBoost': estimators[2][1],
+          'Hard voting': VotingClassifier(estimators=estimators, voting='hard'),
+          'Soft voting': VotingClassifier(estimators=estimators, voting='soft')}
+
+# Train each model and compare the requested classification measures.
+results = []
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    results.append({'Model': name, 'Accuracy': accuracy_score(y_test, predictions),
+        'Precision': precision_score(y_test, predictions, average='macro', zero_division=0),
+        'Recall': recall_score(y_test, predictions, average='macro', zero_division=0),
+        'F1': f1_score(y_test, predictions, average='macro', zero_division=0)})
+    print(name, 'confusion matrix:\n', confusion_matrix(y_test, predictions))
+print('Species order:', encoder.classes_)
+display(pd.DataFrame(results))
+
+--------------------------------------------------------------------------------------------------------- 10
+City Air Quality Visualization
+Use matplotlib to visualize Delhi air quality from the local India city-day dataset. AQI is unitless; pollutant concentrations 
+have different units, so they are plotted separately. Missing values are left as gaps in time-series plots.
+
+# Load and inspect the air-quality data for one city.
+import pandas as pd
+import matplotlib.pyplot as plt
+
+air = pd.read_csv('datasets/assignment_10/City_Air_Quality.csv')
+air = air[air['City'] == 'Delhi'].copy()
+air['Date'] = pd.to_datetime(air['Date'], errors='coerce')
+air = air.dropna(subset=['Date']).sort_values('Date').set_index('Date')
+relevant = ['PM2.5', 'PM10', 'CO', 'AQI', 'AQI_Bucket']
+display(air[relevant].head())
+air[relevant].info()
+display(air[relevant].isna().sum())
+
+# Plot the overall daily AQI trend.
+air['AQI'].plot(figsize=(10, 4), color='purple', label='AQI')
+plt.title('Delhi: AQI over time')
+plt.xlabel('Date')
+plt.ylabel('AQI')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# Plot each pollutant separately so their units remain clear.
+for pollutant, unit, color in [('PM2.5', 'micrograms/m3', 'tomato'),
+                                ('PM10', 'micrograms/m3', 'steelblue'),
+                                ('CO', 'mg/m3', 'seagreen')]:
+    air[pollutant].plot(figsize=(10, 3), color=color, label=pollutant)
+    plt.title(f'Delhi: {pollutant} over time')
+    plt.xlabel('Date')
+    plt.ylabel(unit)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# Compare AQI across months using a bar chart.
+monthly_aqi = air['AQI'].resample('ME').mean()
+monthly_aqi.index = monthly_aqi.index.strftime('%Y-%m')
+monthly_aqi.plot(kind='bar', figsize=(13, 4), color='slateblue')
+plt.title('Delhi: monthly mean AQI')
+plt.xlabel('Month')
+plt.ylabel('Mean AQI')
+plt.xticks(rotation=90, fontsize=7)
+plt.tight_layout()
+plt.show()
+
+# Compare AQI distributions across the dataset's air-quality categories.
+air.dropna(subset=['AQI', 'AQI_Bucket']).boxplot(column='AQI', by='AQI_Bucket', figsize=(10, 4), rot=30)
+plt.suptitle('')
+plt.title('AQI distribution by air-quality category')
+plt.xlabel('AQI category')
+plt.ylabel('AQI')
+plt.tight_layout()
+plt.show()
+
+# Show how AQI relates to the individual pollutant levels.
+for pollutant in ['PM2.5', 'PM10', 'CO']:
+    air.plot.scatter(x=pollutant, y='AQI', alpha=0.3, color='darkorange')
+    plt.title(f'Delhi: AQI versus {pollutant}')
+    plt.tight_layout()
+    plt.show()
+
+--------------------------------------------------------------------------------------------------------- 11
+Q-Learning in a Maze
+The agent starts at the top-left cell and learns to reach the bottom-right goal. It receives +10 for reaching the 
+goal, -0.1 for a valid step and -0.5 for hitting a wall. No external dataset is required.
+
+# Define a small maze, actions and a Q-table.
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(42)
+maze = np.array([[0, 0, 1, 0, 0],
+                 [1, 0, 1, 0, 1],
+                 [0, 0, 0, 0, 0],
+                 [0, 1, 1, 1, 0],
+                 [0, 0, 0, 1, 0]])
+start, goal = (0, 0), (4, 4)
+actions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+Q = np.zeros((5, 5, 4))
+alpha, gamma = 0.2, 0.95
+
+# Apply an action and return the next position, reward and goal status.
+def step(position, action):
+    row = position[0] + actions[action][0]
+    column = position[1] + actions[action][1]
+    if not (0 <= row < 5 and 0 <= column < 5) or maze[row, column] == 1:
+        return position, -0.5, False
+    next_position = (row, column)
+    done = next_position == goal
+    return next_position, 10 if done else -0.1, done
+
+# Explore the maze and learn action values with Q-learning.
+for episode in range(2000):
+    position = start
+    epsilon = max(0.05, 0.9 * (0.997 ** episode))
+    for move in range(100):
+        if rng.random() < epsilon:
+            action = int(rng.integers(4))
+        else:
+            action = int(np.argmax(Q[position]))
+        next_position, reward, done = step(position, action)
+        target = reward if done else reward + gamma * np.max(Q[next_position])
+        Q[position][action] += alpha * (target - Q[position][action])
+        position = next_position
+        if done:
+            break
+print('Training finished.')
+
+# Test the learned greedy policy and show its route through the maze.
+position = start
+path = [position]
+for move in range(50):
+    action = int(np.argmax(Q[position]))
+    position, reward, done = step(position, action)
+    path.append(position)
+    if done:
+        break
+print('Reached goal:', position == goal)
+print('Learned path:', path)
+plt.imshow(maze, cmap='Greys', vmin=0, vmax=1)
+plt.plot([p[1] for p in path], [p[0] for p in path], 'o-', color='royalblue')
+plt.text(0, 0, 'S', color='green', ha='center', va='center')
+plt.text(4, 4, 'G', color='red', ha='center', va='center')
+plt.xticks(range(5))
+plt.yticks(range(5))
+plt.title('Maze: route learned by Q-learning')
+plt.show()
+
+------- 11 B
+Q-Learning for Taxi Pickup and Drop-off
+Train an agent in Gymnasium Taxi-v4. Actions move the taxi, pick up the passenger and drop the passenger at the destination. 
+The environment is included in Gymnasium; it needs no downloaded dataset. 
+Reference: https://gymnasium.farama.org/environments/toy_text/taxi/.
+
+# Create the taxi environment and initialize its state-action values.
+import gymnasium as gym
+import numpy as np
+
+env = gym.make('Taxi-v4', render_mode='ansi')
+rng = np.random.default_rng(42)
+Q = np.zeros((env.observation_space.n, env.action_space.n))
+alpha, gamma = 0.1, 0.99
+print('States:', env.observation_space.n, 'Actions:', env.action_space.n)
+
+# Learn pickup, navigation and drop-off actions through repeated episodes.
+for episode in range(20000):
+    state, info = env.reset(seed=episode)
+    epsilon = max(0.05, 1.0 * (0.9995 ** episode))
+    for move in range(200):
+        if rng.random() < epsilon:
+            action = int(rng.integers(env.action_space.n))
+        else:
+            action = int(np.argmax(Q[state]))
+        next_state, reward, terminated, truncated, info = env.step(action)
+        target = reward if terminated else reward + gamma * np.max(Q[next_state])
+        Q[state, action] += alpha * (target - Q[state, action])
+        state = next_state
+        if terminated or truncated:
+            break
+print('Training finished.')
+
+# Evaluate the learned policy without exploration on 100 new starting situations.
+successes, rewards = 0, []
+for episode in range(100):
+    state, info = env.reset(seed=30000 + episode)
+    total_reward = 0
+    for move in range(200):
+        action = int(np.argmax(Q[state]))
+        state, reward, terminated, truncated, info = env.step(action)
+        total_reward += reward
+        if terminated or truncated:
+            successes += int(terminated)
+            break
+    rewards.append(total_reward)
+print('Successful drop-offs:', successes, '/ 100')
+print('Average test reward:', np.mean(rewards))
+
+# Show one complete pickup/drop-off action sequence and its final map.
+state, info = env.reset(seed=40000)
+print('Starting map:\n', env.render())
+action_names = ['south', 'north', 'east', 'west', 'pickup', 'dropoff']
+route = []
+for move in range(200):
+    action = int(np.argmax(Q[state]))
+    route.append(action_names[action])
+    state, reward, terminated, truncated, info = env.step(action)
+    if terminated or truncated:
+        break
+print('Actions:', route)
+print('Passenger delivered:', terminated)
+print('Final map:\n', env.render())
+env.close()
+
+-------- 11 C
+Tic-Tac-Toe with Q-Learning
+Set up the board environment, define legal moves and rewards, train a Q-learning agent and test it. The agent always 
+plays X first against a random O opponent. +1 is a win, -1 a loss and 0 a draw or continuing game. Test results describe 
+this opponent, not perfect play.
+
+# Set up a board-state Q-table and reproducible random choices.
+import numpy as np
+from collections import defaultdict
+
+rng = np.random.default_rng(42)
+Q = defaultdict(lambda: np.zeros(9))
+alpha, gamma = 0.2, 0.95
+winning_lines = [(0, 1, 2), (3, 4, 5), (6, 7, 8),
+                 (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+# Define wins, legal moves and an environment step including the opponent move.
+def winner(board):
+    for a, b, c in winning_lines:
+        if board[a] != 0 and board[a] == board[b] == board[c]:
+            return board[a]
+    return 0
+
+def legal_moves(board):
+    return [i for i in range(9) if board[i] == 0]
+
+def step(board, action):
+    board = list(board)
+    board[action] = 1
+    if winner(board) == 1:
+        return tuple(board), 1, True
+    if not legal_moves(board):
+        return tuple(board), 0, True
+    board[int(rng.choice(legal_moves(board)))] = -1
+    if winner(board) == -1:
+        return tuple(board), -1, True
+    return tuple(board), 0, not legal_moves(board)
+
+# Choose an exploratory legal move or the legal move with the highest Q-value.
+def choose_action(board, epsilon):
+    moves = legal_moves(board)
+    if rng.random() < epsilon:
+        return int(rng.choice(moves))
+    values = Q[board][moves]
+    best_moves = np.array(moves)[values == values.max()]
+    return int(rng.choice(best_moves))
+
+# Train the model through repeated games against a random opponent.
+for episode in range(30000):
+    board = (0,) * 9
+    epsilon = max(0.05, 0.9 * (0.9999 ** episode))
+    while True:
+        action = choose_action(board, epsilon)
+        next_board, reward, done = step(board, action)
+        if done:
+            target = reward
+        else:
+            target = reward + gamma * max(Q[next_board][legal_moves(next_board)])
+        Q[board][action] += alpha * (target - Q[board][action])
+        board = next_board
+        if done:
+            break
+print('Training finished. Learned board states:', len(Q))
+
+# Test the trained model for 1000 games with exploration switched off.
+rng = np.random.default_rng(123)
+results = {'wins': 0, 'draws': 0, 'losses': 0}
+for game in range(1000):
+    board = (0,) * 9
+    while True:
+        action = choose_action(board, 0)
+        board, reward, done = step(board, action)
+        if done:
+            outcome = 'wins' if reward == 1 else 'losses' if reward == -1 else 'draws'
+            results[outcome] += 1
+            break
+print('Test results against a random opponent:', results)
+print('Win rate:', results['wins'] / 1000)
+
+# Display one test game played by the trained X agent.
+board = (0,) * 9
+symbols = {0: '.', 1: 'X', -1: 'O'}
+while True:
+    board, reward, done = step(board, choose_action(board, 0))
+    for row in range(0, 9, 3):
+        print(' '.join(symbols[x] for x in board[row:row+3]))
+    print()
+    if done:
+        print('X wins' if reward == 1 else 'O wins' if reward == -1 else 'Draw')
+        break
+
+
+--------------------------------------------------------------------------------------------------------- 12
+
+
+Retail Sales Aggregation by Region
+Aggregate sales by region and by region/category, visualize the distribution and identify the highest-sales region.
+
+# Read the local retail data and inspect fields needed for aggregation.
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+sales = pd.read_csv('datasets/assignment_12/Retail_Sales_Data.csv', encoding='latin1')
+display(sales.head())
+sales.info()
+print('Aggregation variables: Region, Sales, Category')
+sales = sales.drop_duplicates(subset='Row ID')
+sales['Sales'] = pd.to_numeric(sales['Sales'], errors='coerce')
+sales['Region'] = sales['Region'].str.strip()
+sales['Category'] = sales['Category'].str.strip()
+sales = sales.dropna(subset=['Region', 'Category', 'Sales'])
+
+# Sum sales for each region and identify the top-performing region.
+region_sales = sales.groupby('Region')['Sales'].sum().sort_values(ascending=False)
+display(region_sales)
+print('Top-performing region:', region_sales.index[0])
+print('Sales:', round(region_sales.iloc[0], 2))
+
+# Visualize the sales distribution across regions.
+region_sales.plot(kind='bar', color='steelblue', rot=0)
+plt.xlabel('Region')
+plt.ylabel('Total sales')
+plt.title('Retail sales by region')
+plt.tight_layout()
+plt.show()
+
+# Aggregate sales by both region and product category.
+category_sales = sales.groupby(['Region', 'Category'])['Sales'].sum().unstack(fill_value=0)
+display(category_sales)
+category_sales.plot(kind='bar', stacked=True, figsize=(9, 4), rot=0)
+plt.xlabel('Region')
+plt.ylabel('Total sales')
+plt.title('Regional sales by product category')
+plt.legend(title='Category')
+plt.tight_layout()
+plt.show()
+
+# Save the regional and regional/category summary tables.
+Path('outputs').mkdir(exist_ok=True)
+region_sales.to_csv('outputs/12_region_sales.csv')
+category_sales.to_csv('outputs/12_region_category_sales.csv')
+
+--------------------------------------------------------------------------------------------------------- 13
+Stock Price Time Series Analysis
+Analyze downloaded Apple stock data (2015-2017), moving averages, possible periodic patterns and price/volume correlation. 
+Fit exponential smoothing, one of the two forecasting methods allowed in the PDF. Evaluation holds out the last 30 trading 
+observations. Calendar group averages are descriptive; they do not establish a repeating seasonal effect.
+
+# Read the local stock data and convert its dates and numeric fields.
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.seasonal import seasonal_decompose
+from sklearn.metrics import mean_squared_error
+from pathlib import Path
+
+stocks = pd.read_csv('datasets/assignment_13/Stock_Prices.csv')
+display(stocks.head())
+stocks.info()
+stocks['Date'] = pd.to_datetime(stocks['Date'], errors='coerce')
+stocks = stocks[['Date', 'AAPL.Close', 'AAPL.Volume']].rename(
+    columns={'AAPL.Close': 'Close', 'AAPL.Volume': 'Volume'})
+stocks[['Close', 'Volume']] = stocks[['Close', 'Volume']].apply(pd.to_numeric, errors='coerce')
+stocks = stocks.dropna().drop_duplicates('Date').sort_values('Date').set_index('Date')
+display(stocks.describe())
+
+# Plot the closing-price history and 20/50-observation moving averages.
+stocks['MA20'] = stocks['Close'].rolling(20).mean()
+stocks['MA50'] = stocks['Close'].rolling(50).mean()
+stocks[['Close', 'MA20', 'MA50']].plot(figsize=(11, 4))
+plt.xlabel('Date')
+plt.ylabel('Price (USD)')
+plt.title('Apple closing price and moving averages')
+plt.tight_layout()
+plt.show()
+
+# Explore weekday, month and year patterns in percentage price changes.
+returns = stocks['Close'].pct_change().dropna() * 100
+weekday = returns.groupby(returns.index.dayofweek).mean().reindex(range(5))
+weekday.index = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+weekday.plot(kind='bar', rot=0, title='Mean daily return by weekday', ylabel='Return (%)')
+plt.show()
+returns.groupby(returns.index.month).mean().plot(
+    kind='bar', rot=0, title='Mean daily return by month', xlabel='Month', ylabel='Return (%)')
+plt.show()
+display(returns.groupby(returns.index.year).mean().rename('Mean daily return (%) by year'))
+
+# Decompose returns for a possible five-trading-observation seasonal pattern.
+decomposition = seasonal_decompose(returns.to_numpy(), model='additive', period=5)
+decomposition.plot()
+plt.suptitle('Exploratory five-observation decomposition', y=1.02)
+plt.tight_layout()
+plt.show()
+
+# Analyze and plot the relationship between closing price and trading volume.
+correlation = stocks[['Close', 'Volume']].corr()
+display(correlation)
+stocks.plot.scatter(x='Volume', y='Close', alpha=0.4, title='Closing price versus trading volume')
+plt.ylabel('Close (USD)')
+plt.show()
+plt.imshow(correlation, cmap='coolwarm', vmin=-1, vmax=1)
+plt.xticks([0, 1], ['Close', 'Volume'])
+plt.yticks([0, 1], ['Close', 'Volume'])
+plt.colorbar(label='Correlation')
+plt.title('Price/volume correlations')
+plt.show()
+
+# Fit exponential smoothing on earlier observations and evaluate the last 30.
+train = stocks['Close'].iloc[:-30].to_numpy()
+test = stocks['Close'].iloc[-30:]
+model = ExponentialSmoothing(train, trend='add', damped_trend=True, initialization_method='estimated').fit()
+predicted = pd.Series(model.forecast(30), index=test.index)
+print('Test RMSE:', np.sqrt(mean_squared_error(test, predicted)))
+test.plot(label='Actual', figsize=(10, 4))
+predicted.plot(label='Forecast')
+plt.xlabel('Date')
+plt.ylabel('Price (USD)')
+plt.title('Held-out stock forecast')
+plt.legend()
+plt.show()
+
+# Refit all available prices and save a forecast for the next ten trading observations.
+final_model = ExponentialSmoothing(stocks['Close'].to_numpy(), trend='add',
+    damped_trend=True, initialization_method='estimated').fit()
+future = pd.DataFrame({'Trading_observation_ahead': range(1, 11),
+                       'Forecast_Close': final_model.forecast(10)})
+display(future)
+Path('outputs').mkdir(exist_ok=True)
+future.to_csv('outputs/13_stock_forecast.csv', index=False)
+
