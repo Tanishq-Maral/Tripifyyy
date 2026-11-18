@@ -226,6 +226,33 @@ export default function Auth() {
       <div className="absolute top-10 left-10 w-52 h-52 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
+      {mode === "login" && (
+        <aside
+          role="note"
+          aria-label="Demo login credentials"
+          className="fixed top-4 right-4 z-30 w-[calc(100%-2rem)] max-w-xs rounded-xl border border-blue-400/30 bg-gray-800/95 p-4 text-sm text-gray-200 shadow-2xl backdrop-blur-md"
+        >
+          <div className="mb-3 flex items-center gap-2 text-blue-300">
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-8a9 9 0 110 18 9 9 0 010-18z" />
+            </svg>
+            <h2 className="font-semibold">Demo credentials</h2>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="font-semibold text-white">User</p>
+              <p><span className="text-gray-400">Email:</span> user@gmail.com</p>
+              <p><span className="text-gray-400">Password:</span> password</p>
+            </div>
+            <div>
+              <p className="font-semibold text-white">Creator</p>
+              <p><span className="text-gray-400">Email:</span> creator@gmail.com</p>
+              <p><span className="text-gray-400">Password:</span> password</p>
+            </div>
+          </div>
+        </aside>
+      )}
+
       <div className="relative w-full max-w-md mx-auto bg-gray-800 rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
         <div className="p-8 overflow-y-auto flex-1">
           <div className="text-center mb-6">
